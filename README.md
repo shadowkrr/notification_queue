@@ -12,13 +12,16 @@ Set your DISCORD server's webhookURL as the ALERT_WEBHOOK endpoint.
 ```
 
 ## get.php
-### When file_get_contents is used and the response code is other than 200, it is loaded in the alert queue.
+When file_get_contents is used and the response code is other than 200, it is loaded in the alert queue.
 
 ## ping.php
 If you can not check the communication using ping, you can load it into the alert queue.
 
 ## push.php
 Notify all the information stored in the alert queue.
+
+## json.php
+If file_get_contents is used and the Json format is incorrect, it can be loaded into the alert queue
 
 ## queue.php
 A library function that packs data into the alert queue.
