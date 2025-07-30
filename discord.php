@@ -8,7 +8,7 @@ function sendMessage($payload = [], $webhook_url = '') {
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ));
     curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-    'Content-Type: application/json; charser=UTF-8'
+    'Content-Type: application/json; charset=UTF-8'
     ));
     $result = curl_exec($ch);
     curl_close($ch);

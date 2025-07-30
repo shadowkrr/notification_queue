@@ -8,40 +8,65 @@ $checkFiles = [
 ];
 
 foreach ($checkFiles as $key => $checkFile) {
+    $checkPath = '/filepath/json/'. $checkFile;
+    
     try {
-        $context = stream_context_create(array(
-            'http' => array('ignore_errors' => true)
-        ));
-        $response = file_get_contents('/filepath/json/'. $checkFile, false, $context);
-        $json = json_decode($response, true);
+        if (!file_exists($checkPath)) {
+            $queue = [];
+            $queue['title'] = $key . ' json failure';
+            $queue['text'] = 'File does not exist: ' . $checkPath;
+            $queue['create'] = date('c');
+            addAlertQueue($queue);
+            echo $key . ' file not found...' . PHP_EOL;
+            continue;
+        }
 
+        $response = file_get_contents($checkPath);
+        
+        if ($response === false) {
+            $queue = [];
+            $queue['title'] = $key . ' json failure';
+            $queue['text'] = 'Failed to read file: ' . $checkPath;
+            $queue['create'] = date('c');
+            addAlertQueue($queue);
+            echo $key . ' file read error...' . PHP_EOL;
+            continue;
+        }
+
+        $json = json_decode($response, true);
         $error = [];
 
         if (empty($response)) {
             $error['text'] = 'response is empty';
         } else if (json_last_error() !== JSON_ERROR_NONE) {
             $error['text'] = json_last_error_msg();
-        } else if (!is_array($json)) {
-            $error['text'] = 'json is not array, It may be damaged';
-        } else if (count($json) < 0) {
-            $error['text'] = 'json count = 0';
+        } else if (!is_array($json) && !is_object($json)) {
+            $error['text'] = 'json is not array or object, It may be damaged';
+        } else if (is_array($json) && count($json) === 0) {
+            $error['text'] = 'json array is empty';
         }
 
-        if (count($error) === 0) continue;
+        if (count($error) === 0) {
+            echo $key . ' json check success...' . PHP_EOL;
+            continue;
+        }
 
         $queue = [];
         $queue['title'] = $key . ' json failure';
-        $queue['text'] = $error['text']. "\n". $checkUrl;
-        $queue['create'] = date('Y-m-d H:i:s');
+        $queue['text'] = $error['text']. "\nFile: ". $checkPath;
+        $queue['create'] = date('c');
         addAlertQueue($queue);
+        echo $key . ' json check failed: ' . $error['text'] . PHP_EOL;
+        
     } catch(Exception $e) {
-        echo $e->getMessage(). PHP_EOL;
+        echo $key . ' error: ' . $e->getMessage(). PHP_EOL;
         $queue = [];
         $queue['title'] = $key . ' json failure';
-        $queue['text'] = $key . " json failure\nmessage = " . $e->getMessage() . "\n" . $checkUrl;
-        $queue['create'] = date('Y-m-d H:i:s');
+        $queue['text'] = $key . " json failure\nmessage = " . $e->getMessage() . "\nFile: " . $checkPath;
+        $queue['create'] = date('c');
         addAlertQueue($queue);
     }
 }
 
 echo 'json check end...' . PHP_EOL;
+?>
