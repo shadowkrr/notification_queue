@@ -1,30 +1,198 @@
-# alert_queue_on_php_public
+# Notification Queue System
 
-## Set discord.php
+A PHP-based alert and notification system that monitors various services and sends notifications to Discord webhooks when issues are detected.
 
-Set your DISCORD server's webhookURL as the ALERT_WEBHOOK endpoint.
+## Features
 
-## Set CRON
+- **HTTP Monitoring**: Detects when HTTP requests return non-200 status codes with timeout protection
+- **Network Monitoring**: Monitors network connectivity using ping with input validation
+- **JSON Validation**: Validates JSON files and alerts on malformed data or missing files
+- **Discord Integration**: Sends rich embedded notifications to Discord channels
+- **Queue Management**: Prevents duplicate alerts and manages notification queues with error recovery
+- **Cross-Platform Support**: Works on Linux, macOS, and Windows
+- **Security Enhanced**: Input validation, command injection prevention, and proper error handling
+
+## Setup
+
+### 1. Configure Discord Webhook
+
+Edit `discord.php` and set your Discord webhook URL:
+
+```php
+define("ALERT_WEBHOOK", "https://discordapp.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN");
 ```
-# alert
-* * * * * cd /home/alert_queue_on_php_public; /usr/bin/php ping.php > /home/alert_queue_on_php_public/ping.log 2>&1
-*/10 * * * * cd /home/alert_queue_on_php_public; /usr/bin/php push.php > /home/alert_queue_on_php_public/push.log 2>&1
+
+### 2. Configure Monitoring Targets
+
+#### HTTP Monitoring (get.php)
+Edit the `$checkUrls` array to add your endpoints:
+
+```php
+$checkUrls = [
+    'api_server' => 'https://your-api.com/health',
+    'website' => 'https://your-website.com',
+    'service' => 'https://service.example.com/status'
+];
 ```
 
-## get.php
-When file_get_contents is used and the response code is other than 200, it is loaded in the alert queue.
+#### Network Monitoring (ping.php)
+Edit the `$monitorHosts` array to add your hosts:
 
-## ping.php
-If you can not check the communication using ping, you can load it into the alert queue.
+```php
+$monitorHosts = [
+    'local_server' => '127.0.0.1',
+    'google_dns' => '8.8.8.8',
+    'main_server' => '192.168.1.100',
+    'website' => 'example.com'
+];
+```
 
-## push.php
-Notify all the information stored in the alert queue.
+#### JSON File Monitoring (json.php)
+Edit the `$checkFiles` array to add your JSON files:
 
-## json.php
-If file_get_contents is used and the Json format is incorrect, it can be loaded into the alert queue
+```php
+$checkFiles = [
+    'config' => 'config.json',
+    'data' => 'important_data.json'
+];
+```
 
-## queue.php
-A library function that packs data into the alert queue.
+### 3. Set up CRON Jobs
 
-## queues.json
-This file stores alert queues.
+Add these cron jobs to automate monitoring:
+
+```bash
+# HTTP and JSON checks every minute
+* * * * * cd /path/to/notification_queue; /usr/bin/php get.php >> /path/to/notification_queue/monitor.log 2>&1
+* * * * * cd /path/to/notification_queue; /usr/bin/php json.php >> /path/to/notification_queue/monitor.log 2>&1
+
+# Network checks every minute
+* * * * * cd /path/to/notification_queue; /usr/bin/php ping.php >> /path/to/notification_queue/monitor.log 2>&1
+
+# Send notifications every 10 minutes
+*/10 * * * * cd /path/to/notification_queue; /usr/bin/php push.php >> /path/to/notification_queue/push.log 2>&1
+```
+
+## File Structure
+
+### Core Files
+
+- **`queue.php`** - Core library for managing alert queues with enhanced error handling
+- **`discord.php`** - Discord webhook integration and message formatting
+- **`queues.json`** - JSON file storing pending alerts (auto-created if missing)
+- **`push.php`** - Processes and sends queued notifications to Discord with comprehensive logging
+
+### Monitoring Scripts
+
+- **`get.php`** - Monitors HTTP endpoints with timeout and proper error handling
+- **`ping.php`** - Performs network connectivity checks with input validation and multi-platform support
+- **`json.php`** - Validates JSON files with existence checks and proper error reporting
+
+## Recent Improvements
+
+### Security Enhancements
+- **Input Validation**: All user inputs are now validated to prevent injection attacks
+- **Command Safety**: Shell commands use `escapeshellarg()` for safe execution
+- **Timeout Protection**: HTTP requests include 30-second timeout to prevent hanging
+
+### Error Handling
+- **Comprehensive Logging**: All errors are logged with detailed messages
+- **Graceful Degradation**: System continues operating even when individual components fail
+- **JSON Corruption Recovery**: Automatically recovers from corrupted queue files
+
+### Reliability Improvements
+- **Duplicate Prevention**: Enhanced duplicate detection in alert queue
+- **File Safety**: Automatic creation of missing configuration files
+- **Cross-Platform**: Improved compatibility across different operating systems
+
+## Usage
+
+### Adding Custom Monitors
+
+Include the queue library in your monitoring scripts:
+
+```php
+<?php
+require_once 'queue.php';
+
+// Add an alert to the queue
+$alert = [
+    'title' => 'Service Alert',
+    'text' => 'Description of the issue',
+    'create' => date('c')  // ISO 8601 format
+];
+
+if (addAlertQueue($alert)) {
+    echo "Alert queued successfully\n";
+} else {
+    echo "Failed to queue alert\n";
+}
+?>
+```
+
+### Manual Testing
+
+Run monitoring scripts manually to test:
+
+```bash
+# Test HTTP monitoring
+php get.php
+
+# Test network monitoring
+php ping.php
+
+# Test JSON validation
+php json.php
+
+# Send queued notifications
+php push.php
+```
+
+### Monitoring Logs
+
+Check log files for system status:
+
+```bash
+# Monitor general activity
+tail -f monitor.log
+
+# Monitor notification sending
+tail -f push.log
+
+# Check PHP error logs
+tail -f /var/log/php_errors.log
+```
+
+## Requirements
+
+- **PHP 7.0 or higher**
+- **cURL extension enabled**
+- **File write permissions** for `queues.json` and log files
+- **Valid Discord webhook URL**
+- **Network access** for HTTP monitoring and Discord notifications
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Permission Denied**: Ensure web server has write access to the directory
+2. **Discord Not Receiving**: Verify webhook URL and network connectivity
+3. **CRON Not Running**: Check cron service status and log files
+4. **JSON Errors**: Check `queues.json` file format and permissions
+
+### Debug Mode
+
+Enable error reporting in PHP files for debugging:
+
+```php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+```
+
+## Security Best Practices
+
+- **File Permissions**: Set appropriate permissions on `queues.json` (644 or 600)
+- **Webhook Security**: Keep Discord webhook URLs private and secure
+- **Log Monitoring**: Regularly check log files for security incidents
+- **Input Validation**: Never disable the built-in input validation
+- **Access Control**: Restrict access to monitoring scripts and configuration files
