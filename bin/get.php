@@ -1,5 +1,5 @@
 <?php
-require "queue.php";
+require_once __DIR__ . '/../src/queue.php';
 
 echo 'get check start...'.PHP_EOL;
 

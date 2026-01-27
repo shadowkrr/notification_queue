@@ -1,0 +1,9 @@
+{
+    "name": "notification-queue/notification-queue",
+    "description": "Alert and notification system for monitoring services",
+    "type": "project",
+    "require": {
+        "php": ">=7.4",
+        "fabpot/goutte": "^4.0"
+    }
+}

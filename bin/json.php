@@ -1,5 +1,5 @@
 <?php
-require "queue.php";
+require_once __DIR__ . '/../src/queue.php';
 
 echo 'json check start...'.PHP_EOL;
 

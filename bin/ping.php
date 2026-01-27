@@ -1,5 +1,5 @@
 <?php
-require "queue.php";
+require_once __DIR__ . '/../src/queue.php';
 
 define('PING_OPTION', [
     'Linux' => '-c',    // linux

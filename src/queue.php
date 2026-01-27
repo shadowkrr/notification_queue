@@ -9,11 +9,11 @@ function addAlertQueue($queue)
         }
 
         // Ensure queues.json exists
-        if (!file_exists("./queues.json")) {
-            file_put_contents("./queues.json", json_encode([], JSON_UNESCAPED_UNICODE));
+        if (!file_exists("__DIR__ . '/../data/queues.json'")) {
+            file_put_contents("__DIR__ . '/../data/queues.json'", json_encode([], JSON_UNESCAPED_UNICODE));
         }
 
-        $queueData = file_get_contents("./queues.json");
+        $queueData = file_get_contents("__DIR__ . '/../data/queues.json'");
         
         if ($queueData === false) {
             error_log('Failed to read queues.json');
@@ -50,7 +50,7 @@ function addAlertQueue($queue)
             
             $queues[] = $queue;
 
-            if (file_put_contents("./queues.json", json_encode($queues, JSON_UNESCAPED_UNICODE)) === false) {
+            if (file_put_contents("__DIR__ . '/../data/queues.json'", json_encode($queues, JSON_UNESCAPED_UNICODE)) === false) {
                 error_log('Failed to write to queues.json');
                 return false;
             }

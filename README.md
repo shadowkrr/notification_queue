@@ -1,6 +1,6 @@
 # Notification Queue System
 
-A PHP-based alert and notification system that monitors various services and sends notifications to Discord webhooks when issues are detected.
+A PHP-based alert and notification system that monitors various services and sends notifications to Discord and Slack when issues are detected.
 
 ## Features
 
@@ -8,181 +8,183 @@ A PHP-based alert and notification system that monitors various services and sen
 - **Network Monitoring**: Monitors network connectivity using ping with input validation
 - **JSON Validation**: Validates JSON files and alerts on malformed data or missing files
 - **Discord Integration**: Sends rich embedded notifications to Discord channels
+- **Slack Integration**: Sends notifications to Slack channels via Incoming Webhooks
 - **Queue Management**: Prevents duplicate alerts and manages notification queues with error recovery
 - **Cross-Platform Support**: Works on Linux, macOS, and Windows
 - **Security Enhanced**: Input validation, command injection prevention, and proper error handling
 
-## Setup
+## Directory Structure
 
-### 1. Configure Discord Webhook
-
-Edit `discord.php` and set your Discord webhook URL:
-
-```php
-define("ALERT_WEBHOOK", "https://discordapp.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN");
+```
+notification_queue/
+├── bin/                    # Executable scripts
+│   ├── push.php            # Send queued notifications
+│   ├── get.php             # HTTP endpoint monitoring
+│   ├── ping.php            # Network connectivity monitoring
+│   └── json.php            # JSON file validation
+├── src/                    # Library files
+│   ├── env.php             # Environment variable loader
+│   ├── queue.php           # Alert queue management
+│   ├── discord.php         # Discord webhook integration
+│   ├── slack.php           # Slack webhook integration
+│   └── scraper/            # Custom scrapers (git ignored)
+├── data/                   # Generated data (git ignored)
+│   └── queues.json         # Pending alerts
+├── examples/               # Sample scripts
+│   ├── custom_monitor.php  # Custom monitoring example
+│   ├── send_alert.php      # CLI alert sender
+│   └── test_notification.php # Webhook tester
+├── .env                    # Environment variables (git ignored)
+├── .env.example            # Environment template
+├── composer.json           # Dependencies
+└── README.md
 ```
 
-### 2. Configure Monitoring Targets
+## Setup
 
-#### HTTP Monitoring (get.php)
-Edit the `$checkUrls` array to add your endpoints:
+### 1. Install Dependencies
 
+```bash
+composer install
+```
+
+### 2. Configure Webhooks
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` with your webhook URLs:
+
+```
+DISCORD_WEBHOOK=https://discordapp.com/api/webhooks/YOUR_ID/YOUR_TOKEN
+SLACK_WEBHOOK=https://hooks.slack.com/services/YOUR_WORKSPACE/YOUR_CHANNEL/YOUR_TOKEN
+```
+
+#### Getting Webhook URLs
+
+**Discord:**
+1. Server Settings > Integrations > Webhooks
+2. Create Webhook and copy URL
+
+**Slack:**
+1. Go to [Slack API](https://api.slack.com/apps)
+2. Create a new app or select an existing one
+3. Enable "Incoming Webhooks"
+4. Add a new webhook to your workspace
+
+### 3. Configure Monitoring Targets
+
+#### HTTP Monitoring (bin/get.php)
 ```php
 $checkUrls = [
     'api_server' => 'https://your-api.com/health',
     'website' => 'https://your-website.com',
-    'service' => 'https://service.example.com/status'
 ];
 ```
 
-#### Network Monitoring (ping.php)
-Edit the `$monitorHosts` array to add your hosts:
-
+#### Network Monitoring (bin/ping.php)
 ```php
 $monitorHosts = [
     'local_server' => '127.0.0.1',
     'google_dns' => '8.8.8.8',
-    'main_server' => '192.168.1.100',
-    'website' => 'example.com'
 ];
 ```
 
-#### JSON File Monitoring (json.php)
-Edit the `$checkFiles` array to add your JSON files:
-
+#### JSON File Monitoring (bin/json.php)
 ```php
 $checkFiles = [
     'config' => 'config.json',
-    'data' => 'important_data.json'
 ];
 ```
 
-### 3. Set up CRON Jobs
-
-Add these cron jobs to automate monitoring:
+### 4. Set up CRON Jobs
 
 ```bash
-# HTTP and JSON checks every minute
-* * * * * cd /path/to/notification_queue; /usr/bin/php get.php >> /path/to/notification_queue/monitor.log 2>&1
-* * * * * cd /path/to/notification_queue; /usr/bin/php json.php >> /path/to/notification_queue/monitor.log 2>&1
+# Set environment variables at the top of crontab (edit with: crontab -e)
+DISCORD_WEBHOOK=https://discordapp.com/api/webhooks/YOUR_ID/YOUR_TOKEN
+SLACK_WEBHOOK=https://hooks.slack.com/services/YOUR_WORKSPACE/YOUR_CHANNEL/YOUR_TOKEN
 
-# Network checks every minute
-* * * * * cd /path/to/notification_queue; /usr/bin/php ping.php >> /path/to/notification_queue/monitor.log 2>&1
+# Monitoring checks every minute
+* * * * * /usr/bin/php /path/to/notification_queue/bin/get.php >> /var/log/monitor.log 2>&1
+* * * * * /usr/bin/php /path/to/notification_queue/bin/ping.php >> /var/log/monitor.log 2>&1
+* * * * * /usr/bin/php /path/to/notification_queue/bin/json.php >> /var/log/monitor.log 2>&1
 
 # Send notifications every 10 minutes
-*/10 * * * * cd /path/to/notification_queue; /usr/bin/php push.php >> /path/to/notification_queue/push.log 2>&1
+*/10 * * * * /usr/bin/php /path/to/notification_queue/bin/push.php >> /var/log/push.log 2>&1
 ```
-
-## File Structure
-
-### Core Files
-
-- **`queue.php`** - Core library for managing alert queues with enhanced error handling
-- **`discord.php`** - Discord webhook integration and message formatting
-- **`queues.json`** - JSON file storing pending alerts (auto-created if missing)
-- **`push.php`** - Processes and sends queued notifications to Discord with comprehensive logging
-
-### Monitoring Scripts
-
-- **`get.php`** - Monitors HTTP endpoints with timeout and proper error handling
-- **`ping.php`** - Performs network connectivity checks with input validation and multi-platform support
-- **`json.php`** - Validates JSON files with existence checks and proper error reporting
-
-## Recent Improvements
-
-### Security Enhancements
-- **Input Validation**: All user inputs are now validated to prevent injection attacks
-- **Command Safety**: Shell commands use `escapeshellarg()` for safe execution
-- **Timeout Protection**: HTTP requests include 30-second timeout to prevent hanging
-
-### Error Handling
-- **Comprehensive Logging**: All errors are logged with detailed messages
-- **Graceful Degradation**: System continues operating even when individual components fail
-- **JSON Corruption Recovery**: Automatically recovers from corrupted queue files
-
-### Reliability Improvements
-- **Duplicate Prevention**: Enhanced duplicate detection in alert queue
-- **File Safety**: Automatic creation of missing configuration files
-- **Cross-Platform**: Improved compatibility across different operating systems
 
 ## Usage
 
-### Adding Custom Monitors
+### Manual Testing
 
-Include the queue library in your monitoring scripts:
+```bash
+# Test webhook configuration
+php examples/test_notification.php slack
+
+# Send a test alert
+php examples/send_alert.php "Test Alert" "This is a test message"
+
+# Run monitoring scripts
+php bin/get.php
+php bin/ping.php
+php bin/push.php
+```
+
+### Adding Custom Monitors
 
 ```php
 <?php
-require_once 'queue.php';
+require_once __DIR__ . '/src/queue.php';
 
-// Add an alert to the queue
 $alert = [
     'title' => 'Service Alert',
     'text' => 'Description of the issue',
-    'create' => date('c')  // ISO 8601 format
+    'channel' => 'slack',  // 'slack' or 'discord'
+    'create' => date('c')
 ];
 
-if (addAlertQueue($alert)) {
-    echo "Alert queued successfully\n";
-} else {
-    echo "Failed to queue alert\n";
-}
-?>
+addAlertQueue($alert);
 ```
 
-### Manual Testing
+### Alert Fields
 
-Run monitoring scripts manually to test:
+| Field | Required | Description |
+|-------|----------|-------------|
+| `title` | Yes | Alert title |
+| `text` | Yes | Alert message |
+| `channel` | No | Notification target: `slack` (default) or `discord` |
+| `create` | No | Timestamp (ISO 8601 format, auto-generated if omitted) |
+| `color` | No | Hex color code (e.g., `ff0000`) |
+| `link` | No | URL to include in the notification |
 
-```bash
-# Test HTTP monitoring
-php get.php
+### Creating Custom Scrapers
 
-# Test network monitoring
-php ping.php
+Create your scraper in `src/scraper/` (this directory is git ignored):
 
-# Test JSON validation
-php json.php
+```php
+<?php
+// src/scraper/my_scraper.php
+require_once __DIR__ . '/../../vendor/autoload.php';
+require_once __DIR__ . '/../env.php';
+require_once __DIR__ . '/../queue.php';
 
-# Send queued notifications
-php push.php
-```
-
-### Monitoring Logs
-
-Check log files for system status:
-
-```bash
-# Monitor general activity
-tail -f monitor.log
-
-# Monitor notification sending
-tail -f push.log
-
-# Check PHP error logs
-tail -f /var/log/php_errors.log
+// Your scraping logic here
 ```
 
 ## Requirements
 
-- **PHP 7.0 or higher**
-- **cURL extension enabled**
-- **File write permissions** for `queues.json` and log files
-- **Valid Discord webhook URL**
-- **Network access** for HTTP monitoring and Discord notifications
+- PHP 7.4 or higher
+- cURL extension enabled
+- Composer (for scraper dependencies)
 
 ## Troubleshooting
 
-### Common Issues
-
-1. **Permission Denied**: Ensure web server has write access to the directory
-2. **Discord Not Receiving**: Verify webhook URL and network connectivity
-3. **CRON Not Running**: Check cron service status and log files
-4. **JSON Errors**: Check `queues.json` file format and permissions
+1. **Notifications Not Sending**: Verify environment variables are set (`echo $SLACK_WEBHOOK`)
+2. **Permission Denied**: Ensure write access to `data/` directory
+3. **CRON Not Running**: Check cron service and environment variables in crontab
 
 ### Debug Mode
-
-Enable error reporting in PHP files for debugging:
 
 ```php
 error_reporting(E_ALL);
@@ -191,8 +193,6 @@ ini_set('display_errors', 1);
 
 ## Security Best Practices
 
-- **File Permissions**: Set appropriate permissions on `queues.json` (644 or 600)
-- **Webhook Security**: Keep Discord webhook URLs private and secure
-- **Log Monitoring**: Regularly check log files for security incidents
-- **Input Validation**: Never disable the built-in input validation
-- **Access Control**: Restrict access to monitoring scripts and configuration files
+- Store webhook URLs in `.env`, never commit to git
+- Set appropriate permissions on `.env` (600)
+- Ensure `data/` and `src/scraper/` are in `.gitignore`

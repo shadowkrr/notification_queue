@@ -1,5 +1,7 @@
 <?php
-define("ALERT_WEBHOOK", "https://discordapp.com/api/webhooks/*******/*********");
+require_once __DIR__ . '/env.php';
+
+define("DISCORD_WEBHOOK", getenv("DISCORD_WEBHOOK") ?: "");
 
 function sendMessage($payload = [], $webhook_url = '') {
     $ch = curl_init($webhook_url);
